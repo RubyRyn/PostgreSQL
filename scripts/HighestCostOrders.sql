@@ -1,39 +1,23 @@
 """
-Find the customers with the highest daily total order cost between 2019-02-01 and 2019-05-01. 
-If a customer had more than one order on a certain day, sum the order costs on a daily basis. 
-Output each customer's first name, total cost of their items, and the date. 
-If multiple customers tie for the highest daily total on the same date, return all of them.
-For simplicity, you can assume that every first name in the dataset is unique.
+Difficulty: Medium
 
-customers table
-------------------
-id:bigint
-first_name:text
-last_name:text
-phone_number:text
-address:text
-city: text
+Find all the users who were active for 3 consecutive days or more.
 
-orders table
+sf_events table
 ------------------
-cust_id:bigint
-id:bigint
-order_date:date
-order_details:text
-total_order_cost:bigint
+user_id:character varying
+record_date:date
+account_id:character varying
 
 """
 
-with daily_order_rank as (
 
-select c.id as cust_id , c.first_name, o.order_date, count(o.id) as num_of_orders , sum(o.total_order_cost) as total_cost, 
-RANK() OVER(PARTITION BY o.order_date ORDER BY sum(o.total_order_cost) desc) as rank_
-from customers as c 
-left join orders as o on c.id = o.cust_id
-where o.order_date between '2019-02-01' and '2019-05-01'
-group by c.id , c.first_name, o.order_date
-
+with record_date_order as (
+select *
+, LEAD(se.record_date) OVER(PARTITION BY se.user_id ORDER BY se.record_date ) as next_date
+, LAG(se.record_date) OVER(PARTITION BY se.user_id ORDER BY se.record_date ) as prev_date
+from sf_events as se 
 )
-select first_name as cust_name,order_date , total_cost as max_cost
-from daily_order_rank as dor 
-where dor.rank_ = 1 ;
+select distinct(rdd.user_id) as user_id
+from record_date_order rdd
+where DATEDIFF(next_date,record_date) = 1 and DATEDIFF(record_date, prev_date) = 1;

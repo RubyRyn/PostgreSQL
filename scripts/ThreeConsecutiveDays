@@ -1,0 +1,11 @@
+with Date_diff as (
+select * , 
+LAG(se.record_date) OVER(PARTITION BY se.user_id ORDER BY se.record_date) as prev_date, 
+DATEDIFF(se.record_date, LAG(se.record_date) OVER(PARTITION BY se.user_id ORDER BY se.record_date)) as date_diff
+from sf_events se
+order by se.user_id,se.record_date
+)
+select * 
+from Date_diff as dd 
+where date_diff = 1
+;
